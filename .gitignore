@@ -1,0 +1,19 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente / credenciais
+.env
+.env.*
+!.env.example
+
+# Anotações com credenciais em texto puro (não deve ir para o repositório)
+dados.md
+
+# Logs
+npm-debug.log*
+*.log
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db
+.vscode/

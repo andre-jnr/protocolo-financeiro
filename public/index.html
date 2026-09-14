@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light dark" />
+<title>Protocolo para Financeiro</title>
+<link rel="stylesheet" href="style.css" />
+<script>
+  // Aplica o tema salvo antes da primeira pintura, para não piscar o tema errado.
+  (function () {
+    try {
+      var salvo = localStorage.getItem('protocolo-financeiro-tema');
+      var tema = salvo || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', tema);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__inner">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5V6a2 2 0 0 1 2-2h8.5L20 8.5V19.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/>
+            <path d="M14 4v4.5h4.5"/>
+            <path d="M8 13.5h8M8 17h5"/>
+          </svg>
+        </span>
+        <div class="brand__text">
+          <h1>Protocolo para Financeiro</h1>
+          <p class="subtitle">Conferência de lançamentos do faturista com o Contas a Pagar</p>
+        </div>
+      </div>
+
+      <button id="btn-tema" class="theme-toggle" type="button" aria-label="Alternar entre tema claro e escuro" title="Alternar tema">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="filters card">
+      <h2><span class="section-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        </span> Filtros</h2>
+      <form id="filtro-form">
+        <div class="field">
+          <label for="loja">Loja</label>
+          <select id="loja" required>
+            <option value="">Carregando lojas...</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="inicio">Data/hora inicial (Data de Lançamento)</label>
+          <input type="datetime-local" id="inicio" required />
+        </div>
+        <div class="field">
+          <label for="fim">Data/hora final (Data de Lançamento)</label>
+          <input type="datetime-local" id="fim" required />
+        </div>
+        <div class="field field-btn">
+          <button type="submit" id="btn-gerar" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            Gerar Relatório
+          </button>
+        </div>
+      </form>
+      <p id="mensagem" class="mensagem"></p>
+    </section>
+
+    <section id="resultado" class="resultado" hidden>
+      <section class="card resumo-card">
+        <div id="resumo-info" class="resumo-info"></div>
+        <div class="export-buttons">
+          <button id="btn-excel" type="button" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
+            Exportar Excel
+          </button>
+          <button id="btn-pdf" type="button" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
+            Exportar PDF
+          </button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="section-icon section-icon--ok" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.5l2 2 4-4.5"/><circle cx="12" cy="12" r="9"/></svg>
+          </span> Lançamentos encontrados no Financeiro</h2>
+        <p class="hint">Arraste pela alça para reordenar as linhas manualmente, se precisar. A ordem manual vale para a exportação.</p>
+
+        <form id="add-codigo-form" class="add-codigo-form">
+          <div class="field">
+            <label for="codigo-contas-pagar">Adicionar pelo código do Contas a Pagar</label>
+            <input type="number" id="codigo-contas-pagar" placeholder="Ex: 89528" min="1" />
+          </div>
+          <button type="submit" id="btn-add-codigo" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Adicionar
+          </button>
+        </form>
+        <p id="mensagem-add-codigo" class="mensagem"></p>
+
+        <div class="table-wrapper">
+          <table id="tabela-matched">
+            <thead>
+              <tr>
+                <th class="col-drag"></th>
+                <th>Código</th>
+                <th>Nota Fiscal</th>
+                <th>Data de Emissão</th>
+                <th>Data de Vencimento</th>
+                <th>Fornecedor</th>
+                <th>Parcela</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p id="sem-matched" class="aviso-vazio" hidden>Nenhum lançamento encontrado no financeiro para o período.</p>
+        </div>
+      </section>
+
+      <section class="card transferencias-card">
+        <h2><span class="section-icon section-icon--transfer" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3m3 3-3 3M20 16H7l3 3m-3-3 3-3"/></svg>
+          </span> Transferências lançadas nesse período</h2>
+        <p class="hint">Lançamentos do Financeiro com Conta Corrente = 2 (transferência interna, sem boleto físico). Esta lista aparece apenas aqui na tela — não é exportada para Excel/PDF.</p>
+        <div class="table-wrapper">
+          <table id="tabela-transferencias">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nota Fiscal</th>
+                <th>Data de Emissão</th>
+                <th>Data de Vencimento</th>
+                <th>Fornecedor</th>
+                <th>Parcela</th>
+                <th>Valor</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p id="sem-transferencias" class="aviso-vazio" hidden>Nenhuma transferência lançada no período.</p>
+        </div>
+      </section>
+
+      <section class="card unmatched-card">
+        <h2><span class="section-icon section-icon--warn" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.6 18a1.5 1.5 0 0 0 1.3 2.2h16.2a1.5 1.5 0 0 0 1.3-2.2L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z"/></svg>
+          </span> Entradas sem lançamento encontrado no Financeiro</h2>
+        <p class="hint">Essas entradas foram lançadas pelo faturista no período, mas não foi encontrado um título correspondente em Contas a Pagar (cruzamento por Data de Emissão + Nota Fiscal). Esta lista aparece apenas aqui na tela — não é exportada para Excel/PDF.</p>
+        <div class="table-wrapper">
+          <table id="tabela-unmatched">
+            <thead>
+              <tr>
+                <th>Nota Fiscal</th>
+                <th>Data de Emissão</th>
+                <th>Data de Lançamento</th>
+                <th>Fornecedor</th>
+                <th>Valor dos Produtos</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p id="sem-unmatched" class="aviso-vazio" hidden>Todas as entradas do período foram encontradas no financeiro.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Protocolo para Financeiro &middot; uso interno</p>
+  </footer>
+
+  <script src="/vendor/xlsx/xlsx.full.min.js"></script>
+  <script src="/vendor/jspdf/jspdf.umd.min.js"></script>
+  <script src="/vendor/jspdf-autotable/jspdf.plugin.autotable.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
