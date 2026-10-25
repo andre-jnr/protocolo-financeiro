@@ -95,7 +95,7 @@
         <h2><span class="section-icon section-icon--ok" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.5l2 2 4-4.5"/><circle cx="12" cy="12" r="9"/></svg>
           </span> Lançamentos encontrados no Financeiro</h2>
-        <p class="hint">Arraste pela alça para reordenar as linhas manualmente, se precisar. A ordem manual vale para a exportação.</p>
+        <p class="hint">Arraste pela alça para reordenar as linhas manualmente, se precisar. A ordem manual vale para a exportação. Use o X para tirar um lançamento do Excel/PDF.</p>
 
         <form id="add-codigo-form" class="add-codigo-form">
           <div class="field">
@@ -121,6 +121,7 @@
                 <th>Fornecedor</th>
                 <th>Parcela</th>
                 <th>Valor</th>
+                <th class="col-acao"></th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -176,6 +177,18 @@
       </section>
     </section>
   </main>
+
+  <dialog id="dialog-excluir" class="dialog-confirmar" aria-labelledby="dialog-excluir-titulo">
+    <form method="dialog">
+      <h3 id="dialog-excluir-titulo">Excluir este lançamento?</h3>
+      <p id="dialog-excluir-texto" class="dialog-detalhe"></p>
+      <p class="hint">Ele não vai sair no PDF nem no Excel. Nada é apagado do banco: para trazê-lo de volta, gere o relatório de novo ou adicione pelo código.</p>
+      <div class="dialog-acoes">
+        <button type="submit" value="cancelar" class="btn btn-secondary" autofocus>Cancelar</button>
+        <button type="submit" value="confirmar" class="btn btn-perigo">Sim, excluir</button>
+      </div>
+    </form>
+  </dialog>
 
   <footer class="app-footer">
     <p>Protocolo para Financeiro &middot; uso interno</p>

@@ -20,16 +20,25 @@
   const btnAddCodigo = document.getElementById('btn-add-codigo');
   const mensagemAddCodigo = document.getElementById('mensagem-add-codigo');
   const btnTema = document.getElementById('btn-tema');
+  const dialogExcluir = document.getElementById('dialog-excluir');
+  const dialogExcluirTexto = document.getElementById('dialog-excluir-texto');
 
   let ultimoRelatorio = null;
   let lojaAtual = null;
   let dragSrcIndex = null;
+  let indiceParaExcluir = null;
 
   const ICONE_ARRASTAR = `
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
       <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
       <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+    </svg>
+  `;
+
+  const ICONE_EXCLUIR = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18"/>
     </svg>
   `;
 
@@ -140,6 +149,7 @@
         <td>${item.fornecedor ?? '-'}</td>
         <td>${item.parcela ?? '-'}</td>
         <td>${formatCurrency(item.valor)}</td>
+        <td class="col-acao"><button type="button" class="btn-excluir" data-index="${index}" title="Excluir da exportação" aria-label="Excluir lançamento ${item.notaFiscal ?? ''}">${ICONE_EXCLUIR}</button></td>
       `;
       matchedBody.appendChild(tr);
     });
@@ -188,6 +198,38 @@
       <div><strong>Lançamentos encontrados:</strong> ${data.matched.length} &nbsp;|&nbsp; <strong>Transferências:</strong> ${data.transferencias.length} &nbsp;|&nbsp; <strong>Sem lançamento no financeiro:</strong> ${data.unmatched.length}</div>
     `;
   }
+
+  // --- Excluir lançamento da lista (não sai no Excel/PDF) ---
+  // Remove só da lista em memória; gerar o relatório de novo ou adicionar
+  // pelo código traz o lançamento de volta.
+
+  matchedBody.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-excluir');
+    if (!btn || !ultimoRelatorio) return;
+    indiceParaExcluir = Number(btn.dataset.index);
+    const item = ultimoRelatorio.matched[indiceParaExcluir];
+    if (!item) return;
+    dialogExcluirTexto.textContent = `Nota ${item.notaFiscal ?? '-'} · ${item.fornecedor ?? '-'} · parcela ${item.parcela ?? '-'} · ${formatCurrency(item.valor)}`;
+    dialogExcluir.returnValue = '';
+    dialogExcluir.showModal();
+  });
+
+  // Clique fora da caixa (no fundo escurecido) cancela.
+  dialogExcluir.addEventListener('click', (e) => {
+    if (e.target === dialogExcluir) dialogExcluir.close('cancelar');
+  });
+
+  dialogExcluir.addEventListener('close', () => {
+    const indice = indiceParaExcluir;
+    indiceParaExcluir = null;
+    if (dialogExcluir.returnValue !== 'confirmar' || indice === null || !ultimoRelatorio) return;
+    const [removido] = ultimoRelatorio.matched.splice(indice, 1);
+    renderMatched(ultimoRelatorio.matched);
+    renderResumo(ultimoRelatorio);
+    if (removido) {
+      setMensagemAddCodigo(`Lançamento ${removido.notaFiscal ?? '-'} (código ${removido.codigoContasPagar ?? '-'}) excluído da exportação. Para trazê-lo de volta, adicione pelo código.`, 'info');
+    }
+  });
 
   // --- Drag and drop das linhas da tabela de lançamentos encontrados ---
 
