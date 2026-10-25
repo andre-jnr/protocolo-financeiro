@@ -445,6 +445,19 @@ button:not(.btn) {
   margin: 2px 0 var(--space-4);
 }
 
+.chk-vencidos {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.chk-vencidos input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+
 .add-codigo-form {
   display: flex;
   flex-wrap: wrap;
@@ -548,6 +561,20 @@ tbody tr:hover { background: var(--bg-subtle); }
 #tabela-matched .btn-excluir svg { width: 16px; height: 16px; pointer-events: none; }
 #tabela-matched .btn-excluir:hover { background: var(--danger-soft); color: var(--danger); }
 #tabela-matched .btn-excluir:focus-visible { outline: 2px solid var(--danger); outline-offset: 1px; }
+
+#tabela-matched tbody tr.linha-vencida td { color: var(--text-secondary); }
+
+.tag-vencido {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
 
 /* Confirmação de exclusão */
 

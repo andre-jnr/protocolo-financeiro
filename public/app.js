@@ -20,6 +20,7 @@
   const btnAddCodigo = document.getElementById('btn-add-codigo');
   const mensagemAddCodigo = document.getElementById('mensagem-add-codigo');
   const btnTema = document.getElementById('btn-tema');
+  const chkVencidos = document.getElementById('chk-vencidos');
   const dialogExcluir = document.getElementById('dialog-excluir');
   const dialogExcluirTexto = document.getElementById('dialog-excluir-texto');
 
@@ -122,6 +123,28 @@
     return matched;
   }
 
+  // Boleto vencido = vencimento antes de hoje. Por padrão fica fora da tela e
+  // da exportação; a caixa "Incluir boletos vencidos" traz de volta.
+  function estaVencido(item) {
+    const venc = new Date(item.dataVencimento);
+    if (Number.isNaN(venc.getTime())) return false;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    venc.setHours(0, 0, 0, 0);
+    return venc < hoje;
+  }
+
+  function mostrarVencidos() {
+    return chkVencidos.checked;
+  }
+
+  function matchedVisiveis() {
+    if (!ultimoRelatorio) return [];
+    return mostrarVencidos()
+      ? ultimoRelatorio.matched
+      : ultimoRelatorio.matched.filter((item) => !estaVencido(item));
+  }
+
   async function carregarLojas() {
     try {
       const res = await fetch('/api/lojas');
@@ -136,16 +159,21 @@
 
   function renderMatched(matched) {
     matchedBody.innerHTML = '';
-    semMatchedEl.hidden = matched.length > 0;
+    const incluirVencidos = mostrarVencidos();
+    let visiveis = 0;
     matched.forEach((item, index) => {
+      const vencido = estaVencido(item);
+      if (vencido && !incluirVencidos) return;
+      visiveis += 1;
       const tr = document.createElement('tr');
+      if (vencido) tr.classList.add('linha-vencida');
       tr.dataset.index = String(index);
       tr.innerHTML = `
         <td class="drag-handle" draggable="true" title="Arraste para reordenar">${ICONE_ARRASTAR}</td>
         <td>${item.codigoContasPagar ?? '-'}</td>
         <td>${item.notaFiscal ?? '-'}</td>
         <td>${formatDate(item.dataEmissao)}</td>
-        <td>${formatDate(item.dataVencimento)}</td>
+        <td>${formatDate(item.dataVencimento)}${vencido ? ' <span class="tag-vencido">Vencido</span>' : ''}</td>
         <td>${item.fornecedor ?? '-'}</td>
         <td>${item.parcela ?? '-'}</td>
         <td>${formatCurrency(item.valor)}</td>
@@ -153,6 +181,7 @@
       `;
       matchedBody.appendChild(tr);
     });
+    semMatchedEl.hidden = visiveis > 0;
   }
 
   function renderUnmatched(unmatched) {
@@ -189,13 +218,21 @@
     }
   }
 
+  function textoVencidos(data) {
+    const qtd = data.matched.filter(estaVencido).length;
+    if (!qtd) return '';
+    return mostrarVencidos()
+      ? ` (inclui ${qtd} vencido${qtd > 1 ? 's' : ''})`
+      : ` (${qtd} vencido${qtd > 1 ? 's' : ''} oculto${qtd > 1 ? 's' : ''})`;
+  }
+
   function renderResumo(data) {
     const inicioFmt = new Date(data.periodo.inicio).toLocaleString('pt-BR');
     const fimFmt = new Date(data.periodo.fim).toLocaleString('pt-BR');
     resumoInfo.innerHTML = `
       <div><strong>Loja:</strong> ${data.loja}</div>
       <div><strong>Período (Data de Lançamento):</strong> ${inicioFmt} até ${fimFmt}</div>
-      <div><strong>Lançamentos encontrados:</strong> ${data.matched.length} &nbsp;|&nbsp; <strong>Transferências:</strong> ${data.transferencias.length} &nbsp;|&nbsp; <strong>Sem lançamento no financeiro:</strong> ${data.unmatched.length}</div>
+      <div><strong>Lançamentos encontrados:</strong> ${matchedVisiveis().length}${textoVencidos(data)} &nbsp;|&nbsp; <strong>Transferências:</strong> ${data.transferencias.length} &nbsp;|&nbsp; <strong>Sem lançamento no financeiro:</strong> ${data.unmatched.length}</div>
     `;
   }
 
@@ -229,6 +266,12 @@
     if (removido) {
       setMensagemAddCodigo(`Lançamento ${removido.notaFiscal ?? '-'} (código ${removido.codigoContasPagar ?? '-'}) excluído da exportação. Para trazê-lo de volta, adicione pelo código.`, 'info');
     }
+  });
+
+  chkVencidos.addEventListener('change', () => {
+    if (!ultimoRelatorio) return;
+    renderMatched(ultimoRelatorio.matched);
+    renderResumo(ultimoRelatorio);
   });
 
   // --- Drag and drop das linhas da tabela de lançamentos encontrados ---
@@ -360,7 +403,11 @@
         throw new Error(conta.erro || 'Não foi possível localizar o código informado.');
       }
 
-      const jaExiste = ultimoRelatorio.matched.some((m) => m.codigoContasPagar === conta.codigoContasPagar)
+      const existente = ultimoRelatorio.matched.find((m) => m.codigoContasPagar === conta.codigoContasPagar);
+      if (existente && estaVencido(existente) && !mostrarVencidos()) {
+        throw new Error(`O código ${conta.codigoContasPagar} já está na lista, mas está vencido e oculto. Marque "Incluir boletos vencidos" para vê-lo.`);
+      }
+      const jaExiste = Boolean(existente)
         || ultimoRelatorio.transferencias.some((t) => t.codigoContasPagar === conta.codigoContasPagar);
       if (jaExiste) {
         throw new Error(`O código ${conta.codigoContasPagar} já está na tabela.`);
@@ -377,6 +424,9 @@
         ordenarPorDiaDeVencimento(ultimoRelatorio.matched);
         renderMatched(ultimoRelatorio.matched);
         aviso = `Lançamento ${conta.notaFiscal} (parcela ${conta.parcela ?? '-'}) adicionado com sucesso.`;
+        if (estaVencido(conta) && !mostrarVencidos()) {
+          aviso += ' Ele está vencido e fica oculto: marque "Incluir boletos vencidos" para vê-lo e exportá-lo.';
+        }
       }
       renderResumo(ultimoRelatorio);
       setMensagemAddCodigo(aviso, 'info');
@@ -392,7 +442,7 @@
 
   btnExcel.addEventListener('click', () => {
     if (!ultimoRelatorio) return;
-    const linhas = ultimoRelatorio.matched.map((item) => ({
+    const linhas = matchedVisiveis().map((item) => ({
       'Código': item.codigoContasPagar,
       'Nota Fiscal': item.notaFiscal,
       'Data de Emissão': formatDate(item.dataEmissao),
@@ -440,7 +490,7 @@
     doc.text(`Período (Data de Lançamento): ${inicioFmt} até ${fimFmt}`, margin, 78);
     doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, 92);
 
-    const linhas = ultimoRelatorio.matched.map((item) => [
+    const linhas = matchedVisiveis().map((item) => [
       String(item.codigoContasPagar ?? '-'),
       String(item.notaFiscal ?? '-'),
       formatDate(item.dataEmissao),

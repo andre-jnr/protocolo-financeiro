@@ -10,6 +10,8 @@ Sistema local para conferência dos lançamentos do faturista (Entrada de Produt
 - Lançamentos com **Conta_Corrente = 2** (transferência interna, sem boleto físico) vão para uma tabela separada de "Transferências", não para a de lançamentos encontrados.
 - A lista de lançamentos encontrados é ordenada apenas pelo **dia do vencimento** (01 a 31), ignorando mês/ano, e pode ser reordenada manualmente arrastando as linhas (drag and drop) — a ordem manual vale para a exportação.
 - Cada linha mostra o código do lançamento no Contas a Pagar. Se o faturista segurar uma nota e ela for lançada fora do período (Data de Lançamento), dá pra adicionar manualmente pelo código do Contas a Pagar — a linha é inserida já na posição correta pelo dia de vencimento.
+- Boletos **vencidos** (vencimento antes de hoje) ficam ocultos da tabela e da exportação por padrão; marcando **"Incluir boletos vencidos"** eles voltam, com a etiqueta "Vencido".
+- Qualquer lançamento pode ser tirado da exportação pelo **X** da linha (com confirmação). Só sai da lista em tela; nada é apagado do banco.
 - Entradas sem título correspondente e as transferências aparecem só na tela, em seções separadas (não entram no Excel/PDF).
 
 ## Como rodar (usuário do dia a dia)
