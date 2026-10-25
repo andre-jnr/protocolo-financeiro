@@ -66,6 +66,8 @@ As credenciais e servidores de cada loja **não ficam no código** — ficam em 
 | `STORE_MONTE_DAS_OLIVEIRAS_SERVER` / `STORE_MONTE_DAS_OLIVEIRAS_DATABASE` | 200.150.200.180 / SISMOURA_SRV_MONTE |
 | `STORE_CD_SERVER` / `STORE_CD_DATABASE` | serverprq10 / sismoura_cd |
 
+Só aparecem no sistema as lojas com `_SERVER` **e** `_DATABASE` preenchidos. Para esconder uma loja, deixe as duas linhas dela vazias (ou apague-as) e reinicie o sistema; o log avisa quais lojas foram ignoradas.
+
 Esses nomes de servidor só resolvem dentro da rede interna da empresa — rode o sistema em uma máquina com acesso a essa rede.
 
 Se algum servidor usar criptografia/certificado próprio ou porta diferente de 1433, ajuste as opções em `server/config.js` (`options.encrypt`, `port`, etc.).

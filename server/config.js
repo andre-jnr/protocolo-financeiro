@@ -31,22 +31,29 @@ const BASE_OPTIONS = {
   requestTimeout: 30000,
 };
 
-function buildStore(label, server, database) {
+// Loja sem servidor/banco no .env fica de fora: não aparece na lista da tela
+// e a API recusa consultas para ela.
+const LOJAS = [
+  ['parque_dez', 'Parque Dez', 'STORE_PARQUE_DEZ'],
+  ['ponta_negra', 'Ponta Negra', 'STORE_PONTA_NEGRA'],
+  ['morada_do_sol', 'Morada do Sol', 'STORE_MORADA_DO_SOL'],
+  ['monte_das_oliveiras', 'Monte das Oliveiras', 'STORE_MONTE_DAS_OLIVEIRAS'],
+  ['cd', 'CD', 'STORE_CD'],
+];
+
+const STORES = {};
+for (const [key, label, prefixo] of LOJAS) {
+  const server = process.env[`${prefixo}_SERVER`];
+  const database = process.env[`${prefixo}_DATABASE`];
   if (!server || !database) {
-    throw new Error(
-      `Configuração incompleta para a loja "${label}" — defina o servidor e o banco `
-      + 'correspondentes no arquivo .env (veja .env.example).'
-    );
+    console.warn(`Loja "${label}" ignorada: defina ${prefixo}_SERVER e ${prefixo}_DATABASE no .env para usá-la.`);
+    continue;
   }
-  return { label, ...BASE_OPTIONS, server, database };
+  STORES[key] = { label, ...BASE_OPTIONS, server, database };
 }
 
-const STORES = {
-  parque_dez: buildStore('Parque Dez', process.env.STORE_PARQUE_DEZ_SERVER, process.env.STORE_PARQUE_DEZ_DATABASE),
-  ponta_negra: buildStore('Ponta Negra', process.env.STORE_PONTA_NEGRA_SERVER, process.env.STORE_PONTA_NEGRA_DATABASE),
-  morada_do_sol: buildStore('Morada do Sol', process.env.STORE_MORADA_DO_SOL_SERVER, process.env.STORE_MORADA_DO_SOL_DATABASE),
-  monte_das_oliveiras: buildStore('Monte das Oliveiras', process.env.STORE_MONTE_DAS_OLIVEIRAS_SERVER, process.env.STORE_MONTE_DAS_OLIVEIRAS_DATABASE),
-  cd: buildStore('CD', process.env.STORE_CD_SERVER, process.env.STORE_CD_DATABASE),
-};
+if (Object.keys(STORES).length === 0) {
+  console.warn('Nenhuma loja configurada no .env — a lista de lojas ficará vazia (veja .env.example).');
+}
 
 module.exports = { STORES };
