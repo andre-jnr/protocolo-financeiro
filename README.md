@@ -1,11 +1,13 @@
 # Protocolo para Financeiro
 
+Porta: **3006** (configurável por `PORT` no `.env`).
+
 Sistema local para conferência dos lançamentos do faturista (Entrada de Produtos) com os títulos do Contas a Pagar, por período de cadastro.
 
 ## Como funciona
 
 - Um pequeno servidor local (Node.js) conecta diretamente no banco SQL Server de cada loja e roda as consultas.
-- O navegador acessa esse servidor local (`http://localhost:3000`) para gerar o relatório e exportar Excel/PDF.
+- O navegador acessa esse servidor local (`http://localhost:3006`) para gerar o relatório e exportar Excel/PDF.
 - O cruzamento é feito por **Data de Emissão + Nota Fiscal** (`Entrada_Produto`) com **Data_Emissao + N_Doc_Merc** (`Contas_Pagar`), ignorando hora, zeros à esquerda e diferenças de tipo (varchar x int) entre os dois números de documento.
 - Lançamentos com **Conta_Corrente = 2** (transferência interna, sem boleto físico) vão para uma tabela separada de "Transferências", não para a de lançamentos encontrados.
 - A lista de lançamentos encontrados é ordenada apenas pelo **dia do vencimento** (01 a 31), ignorando mês/ano, e pode ser reordenada manualmente arrastando as linhas (drag and drop) — a ordem manual vale para a exportação.
@@ -35,7 +37,19 @@ Se o Node.js não estiver instalado no computador, o script avisa e pede para in
    ```
    npm start
    ```
-3. Abra no navegador: `http://localhost:3000`
+3. Abra no navegador: `http://localhost:3006`
+
+## Publicar no servidor (Windows)
+
+1. Copie a pasta do projeto para o servidor (sem `node_modules`).
+2. Tenha o Node.js LTS instalado.
+3. Crie o `.env` a partir do `.env.example`.
+4. Clique duas vezes em `servidor\instalar.bat` e confirme o pedido de administrador.
+
+Sobe sozinho ao ligar o computador (tarefa agendada "Protocolo para financeiro (3006)"), reinicia se cair,
+e fica acessível em http://NOME-DO-SERVIDOR:3006. Log: `logs\servidor.log`.
+Para atualizar: copie os arquivos novos e rode o `instalar.bat` de novo.
+Para remover: `servidor\desinstalar.bat` (não apaga dados).
 
 ## Configuração de conexão
 
@@ -68,6 +82,7 @@ server/
   db.js                   -> pool de conexão com o SQL Server (mssql)
   report.js               -> consultas e cruzamento dos dados
   iniciar-servidor.bat    -> roda "node server.js" numa janela própria (usado pelo .bat principal)
+servidor/                 -> publicação no servidor Windows (instalar.bat, desinstalar.bat, config.ps1)
 public/
   index.html   -> tela do sistema
   style.css

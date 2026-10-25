@@ -1,7 +1,7 @@
 // Credenciais e conexões dos bancos de dados de cada loja.
 // Os valores reais ficam no arquivo .env (não versionado) — veja .env.example.
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const USER = process.env.DB_USER;
 const PASSWORD = process.env.DB_PASSWORD;

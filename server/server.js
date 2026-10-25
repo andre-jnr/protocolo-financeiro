@@ -1,10 +1,12 @@
+const os = require('os');
 const path = require('path');
 const express = require('express');
 const { STORES } = require('./config');
 const { generateReport, buscarContaPorCodigo } = require('./report');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORTA = Number(process.env.PORT || 3006);
+const PORTA_OCUPADA = 3; // código de saída usado por servidor/iniciar.ps1 para não ficar tentando de novo
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/vendor/xlsx', express.static(path.join(__dirname, '..', 'node_modules', 'xlsx', 'dist')));
@@ -73,6 +75,11 @@ app.get('/api/conta', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Protocolo para financeiro rodando em http://localhost:${PORT}`);
+// 0.0.0.0: aceita acesso pela rede (http://NOME-DO-SERVIDOR:3006), não só do próprio computador
+const servidor = app.listen(PORTA, '0.0.0.0', () => {
+  console.log(`Protocolo para financeiro rodando em http://localhost:${PORTA} (rede: http://${os.hostname()}:${PORTA})`);
+});
+servidor.on('error', (e) => {
+  console.error(e.code === 'EADDRINUSE' ? `ERRO: a porta ${PORTA} já está em uso.` : e);
+  process.exit(e.code === 'EADDRINUSE' ? PORTA_OCUPADA : 1);
 });

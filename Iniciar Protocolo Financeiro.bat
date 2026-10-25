@@ -44,7 +44,7 @@ if not exist "node_modules" (
     echo.
 )
 
-netstat -ano | findstr "LISTENING" | findstr ":3000 " >nul 2>nul
+netstat -ano | findstr "LISTENING" | findstr ":3006 " >nul 2>nul
 if errorlevel 1 (
     echo Iniciando o servidor local...
     start "Protocolo para Financeiro - Servidor (NAO FECHE)" "%~dp0server\iniciar-servidor.bat"
@@ -54,10 +54,10 @@ if errorlevel 1 (
 )
 
 echo Abrindo o sistema no navegador...
-start "" "http://localhost:3000"
+start "" "http://localhost:3006"
 
 echo.
-echo Pronto! Se o navegador nao abrir sozinho, acesse: http://localhost:3000
+echo Pronto! Se o navegador nao abrir sozinho, acesse: http://localhost:3006
 echo Para ENCERRAR o sistema, feche a janela "Protocolo para Financeiro - Servidor".
 echo.
 timeout /t 4 >nul
@@ -71,7 +71,7 @@ if errorlevel 1 (
     exit /b 0
 )
 for /l %%i in (1,1,30) do (
-    curl -s -o nul http://localhost:3000
+    curl -s -o nul http://localhost:3006
     if not errorlevel 1 exit /b 0
     timeout /t 1 /nobreak >nul
 )

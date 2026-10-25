@@ -12,6 +12,10 @@ dados.md
 # Logs
 npm-debug.log*
 *.log
+logs/
+
+# Caminho do Node gravado pelo instalador do servidor
+servidor/.node
 
 # Sistema operacional / editor
 .DS_Store
