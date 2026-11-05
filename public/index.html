@@ -66,6 +66,14 @@
           <label for="fim">Data/hora final (Data de Lançamento)</label>
           <input type="datetime-local" id="fim" required />
         </div>
+        <div class="field field-dia">
+          <label for="dia-inicial">Vencimento do dia</label>
+          <input type="number" id="dia-inicial" min="1" max="31" step="1" value="01" inputmode="numeric" />
+        </div>
+        <div class="field field-dia">
+          <label for="dia-final">até o dia</label>
+          <input type="number" id="dia-final" min="1" max="31" step="1" value="31" inputmode="numeric" />
+        </div>
         <div class="field field-btn">
           <button type="submit" id="btn-gerar" class="btn btn-primary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>

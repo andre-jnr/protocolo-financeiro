@@ -347,6 +347,7 @@ input:focus-visible {
 }
 
 .field-btn { min-width: unset; }
+.field-dia { min-width: 110px; width: 120px; }
 
 /* ---------------------------------------------------------------------- */
 /* Buttons                                                                 */

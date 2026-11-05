@@ -13,6 +13,7 @@ Sistema local para conferência dos lançamentos do faturista (Entrada de Produt
 - A lista de lançamentos encontrados é ordenada apenas pelo **dia do vencimento** (01 a 31), ignorando mês/ano, e pode ser reordenada manualmente arrastando as linhas (drag and drop) — a ordem manual vale para a exportação.
 - Cada linha mostra o código do lançamento no Contas a Pagar. Se o faturista segurar uma nota e ela for lançada fora do período (Data de Lançamento), dá pra adicionar manualmente pelo código do Contas a Pagar — a linha é inserida já na posição correta pelo dia de vencimento.
 - Boletos **vencidos** (vencimento antes de hoje) ficam ocultos da tabela e da exportação por padrão; marcando **"Incluir boletos vencidos"** eles voltam, com a etiqueta "Vencido".
+- Filtro por **dia de vencimento** ("Vencimento do dia" / "até o dia", padrão 01 a 31): mostra e exporta só os lançamentos cujo dia de vencimento está na faixa, ignorando mês/ano. Se o dia inicial for maior que o final (ex.: 25 a 05), vale a virada do mês (25 a 31 e 01 a 05). Muda na hora, sem consultar o banco de novo.
 - Qualquer lançamento pode ser tirado da exportação pelo **X** da linha (com confirmação). Só sai da lista em tela; nada é apagado do banco.
 - Entradas sem título correspondente e as transferências aparecem só na tela, em seções separadas (não entram no Excel/PDF).
 

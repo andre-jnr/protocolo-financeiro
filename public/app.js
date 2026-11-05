@@ -21,6 +21,8 @@
   const mensagemAddCodigo = document.getElementById('mensagem-add-codigo');
   const btnTema = document.getElementById('btn-tema');
   const chkVencidos = document.getElementById('chk-vencidos');
+  const diaInicialInput = document.getElementById('dia-inicial');
+  const diaFinalInput = document.getElementById('dia-final');
   const dialogExcluir = document.getElementById('dialog-excluir');
   const dialogExcluirTexto = document.getElementById('dialog-excluir-texto');
 
@@ -138,11 +140,41 @@
     return chkVencidos.checked;
   }
 
+  // Filtro por dia do vencimento (01 a 31), ignorando mês e ano. Se o dia
+  // inicial for maior que o final (ex.: 25 a 05), pega a virada do mês:
+  // 25 a 31 e 01 a 05.
+  function lerDia(input, padrao) {
+    const n = Number.parseInt(input.value, 10);
+    if (Number.isNaN(n)) return padrao;
+    return Math.min(31, Math.max(1, n));
+  }
+
+  function diasVencimento() {
+    return { inicial: lerDia(diaInicialInput, 1), final: lerDia(diaFinalInput, 31) };
+  }
+
+  function filtroDiasAtivo() {
+    const { inicial, final } = diasVencimento();
+    return inicial !== 1 || final !== 31;
+  }
+
+  function dentroDosDias(item) {
+    const venc = new Date(item.dataVencimento);
+    if (Number.isNaN(venc.getTime())) return true;
+    const dia = venc.getDate();
+    const { inicial, final } = diasVencimento();
+    return inicial <= final
+      ? dia >= inicial && dia <= final
+      : dia >= inicial || dia <= final;
+  }
+
+  function estaVisivel(item) {
+    return dentroDosDias(item) && (mostrarVencidos() || !estaVencido(item));
+  }
+
   function matchedVisiveis() {
     if (!ultimoRelatorio) return [];
-    return mostrarVencidos()
-      ? ultimoRelatorio.matched
-      : ultimoRelatorio.matched.filter((item) => !estaVencido(item));
+    return ultimoRelatorio.matched.filter(estaVisivel);
   }
 
   async function carregarLojas() {
@@ -159,11 +191,10 @@
 
   function renderMatched(matched) {
     matchedBody.innerHTML = '';
-    const incluirVencidos = mostrarVencidos();
     let visiveis = 0;
     matched.forEach((item, index) => {
+      if (!estaVisivel(item)) return;
       const vencido = estaVencido(item);
-      if (vencido && !incluirVencidos) return;
       visiveis += 1;
       const tr = document.createElement('tr');
       if (vencido) tr.classList.add('linha-vencida');
@@ -219,11 +250,23 @@
   }
 
   function textoVencidos(data) {
-    const qtd = data.matched.filter(estaVencido).length;
-    if (!qtd) return '';
-    return mostrarVencidos()
-      ? ` (inclui ${qtd} vencido${qtd > 1 ? 's' : ''})`
-      : ` (${qtd} vencido${qtd > 1 ? 's' : ''} oculto${qtd > 1 ? 's' : ''})`;
+    const partes = [];
+    const qtd = data.matched.filter((item) => dentroDosDias(item) && estaVencido(item)).length;
+    if (qtd) {
+      partes.push(mostrarVencidos()
+        ? `inclui ${qtd} vencido${qtd > 1 ? 's' : ''}`
+        : `${qtd} vencido${qtd > 1 ? 's' : ''} oculto${qtd > 1 ? 's' : ''}`);
+    }
+    const foraDosDias = data.matched.filter((item) => !dentroDosDias(item)).length;
+    if (foraDosDias) {
+      partes.push(`${foraDosDias} fora dos dias de vencimento`);
+    }
+    return partes.length ? ` (${partes.join(' · ')})` : '';
+  }
+
+  function textoDiasVencimento() {
+    const { inicial, final } = diasVencimento();
+    return `dia ${pad2(inicial)} ao dia ${pad2(final)}`;
   }
 
   function renderResumo(data) {
@@ -232,6 +275,7 @@
     resumoInfo.innerHTML = `
       <div><strong>Loja:</strong> ${data.loja}</div>
       <div><strong>Período (Data de Lançamento):</strong> ${inicioFmt} até ${fimFmt}</div>
+      ${filtroDiasAtivo() ? `<div><strong>Vencimentos:</strong> ${textoDiasVencimento()}</div>` : ''}
       <div><strong>Lançamentos encontrados:</strong> ${matchedVisiveis().length}${textoVencidos(data)} &nbsp;|&nbsp; <strong>Transferências:</strong> ${data.transferencias.length} &nbsp;|&nbsp; <strong>Sem lançamento no financeiro:</strong> ${data.unmatched.length}</div>
     `;
   }
@@ -268,11 +312,24 @@
     }
   });
 
-  chkVencidos.addEventListener('change', () => {
+  function aplicarFiltrosDaTabela() {
     if (!ultimoRelatorio) return;
     renderMatched(ultimoRelatorio.matched);
     renderResumo(ultimoRelatorio);
-  });
+  }
+
+  chkVencidos.addEventListener('change', aplicarFiltrosDaTabela);
+
+  // Os dias valem na hora, sem consultar o banco de novo. Ao sair do campo,
+  // o valor é corrigido para 01-31 com dois dígitos.
+  for (const input of [diaInicialInput, diaFinalInput]) {
+    input.addEventListener('input', aplicarFiltrosDaTabela);
+    input.addEventListener('change', () => {
+      const padrao = input === diaInicialInput ? 1 : 31;
+      input.value = pad2(lerDia(input, padrao));
+      aplicarFiltrosDaTabela();
+    });
+  }
 
   // --- Drag and drop das linhas da tabela de lançamentos encontrados ---
 
@@ -404,6 +461,9 @@
       }
 
       const existente = ultimoRelatorio.matched.find((m) => m.codigoContasPagar === conta.codigoContasPagar);
+      if (existente && !dentroDosDias(existente)) {
+        throw new Error(`O código ${conta.codigoContasPagar} já está na lista, mas o vencimento está fora dos dias filtrados (${textoDiasVencimento()}).`);
+      }
       if (existente && estaVencido(existente) && !mostrarVencidos()) {
         throw new Error(`O código ${conta.codigoContasPagar} já está na lista, mas está vencido e oculto. Marque "Incluir boletos vencidos" para vê-lo.`);
       }
@@ -424,7 +484,9 @@
         ordenarPorDiaDeVencimento(ultimoRelatorio.matched);
         renderMatched(ultimoRelatorio.matched);
         aviso = `Lançamento ${conta.notaFiscal} (parcela ${conta.parcela ?? '-'}) adicionado com sucesso.`;
-        if (estaVencido(conta) && !mostrarVencidos()) {
+        if (!dentroDosDias(conta)) {
+          aviso += ` O vencimento está fora dos dias filtrados (${textoDiasVencimento()}), então ele fica oculto e não sai na exportação.`;
+        } else if (estaVencido(conta) && !mostrarVencidos()) {
           aviso += ' Ele está vencido e fica oculto: marque "Incluir boletos vencidos" para vê-lo e exportá-lo.';
         }
       }
@@ -488,7 +550,12 @@
     const fimFmt = new Date(ultimoRelatorio.periodo.fim).toLocaleString('pt-BR');
     doc.text(`Loja: ${ultimoRelatorio.loja}`, margin, 64);
     doc.text(`Período (Data de Lançamento): ${inicioFmt} até ${fimFmt}`, margin, 78);
-    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, 92);
+    let linhaY = 92;
+    if (filtroDiasAtivo()) {
+      doc.text(`Vencimentos: ${textoDiasVencimento()}`, margin, linhaY);
+      linhaY += 14;
+    }
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, linhaY);
 
     const linhas = matchedVisiveis().map((item) => [
       String(item.codigoContasPagar ?? '-'),
@@ -501,7 +568,7 @@
     ]);
 
     doc.autoTable({
-      startY: 106,
+      startY: linhaY + 14,
       head: [['Código', 'Nota Fiscal', 'Data Emissão', 'Data Vencimento', 'Fornecedor', 'Parcela', 'Valor']],
       body: linhas,
       styles: { fontSize: 9, cellPadding: 5 },
