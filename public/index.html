@@ -106,7 +106,7 @@
           </span> Lançamentos encontrados no Financeiro</h2>
         <label class="chk-vencidos">
           <input type="checkbox" id="chk-vencidos" />
-          Incluir boletos vencidos (vencimento antes de hoje) na tela e na exportação
+          Incluir boletos vencidos (vencimento até hoje) na tela e na exportação
         </label>
         <p class="hint">Arraste pela alça para reordenar as linhas manualmente, se precisar. A ordem manual vale para a exportação. Use o X para tirar um lançamento do Excel/PDF.</p>
 
@@ -198,7 +198,7 @@
       <p class="hint">Ele não vai sair no PDF nem no Excel. Nada é apagado do banco: para trazê-lo de volta, gere o relatório de novo ou adicione pelo código.</p>
       <div class="dialog-acoes">
         <button type="submit" value="cancelar" class="btn btn-secondary" autofocus>Cancelar</button>
-        <button type="submit" value="confirmar" class="btn btn-perigo">Sim, excluir</button>
+        <button type="submit" value="confirmar" id="btn-confirmar-excluir" class="btn btn-perigo">Sim, excluir</button>
       </div>
     </form>
   </dialog>

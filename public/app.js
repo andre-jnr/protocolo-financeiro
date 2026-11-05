@@ -25,6 +25,7 @@
   const diaFinalInput = document.getElementById('dia-final');
   const dialogExcluir = document.getElementById('dialog-excluir');
   const dialogExcluirTexto = document.getElementById('dialog-excluir-texto');
+  const btnConfirmarExcluir = document.getElementById('btn-confirmar-excluir');
 
   let ultimoRelatorio = null;
   let lojaAtual = null;
@@ -125,7 +126,7 @@
     return matched;
   }
 
-  // Boleto vencido = vencimento antes de hoje. Por padrão fica fora da tela e
+  // Boleto vencido = vencimento até hoje (inclusive). Por padrão fica fora da tela e
   // da exportação; a caixa "Incluir boletos vencidos" traz de volta.
   function estaVencido(item) {
     const venc = new Date(item.dataVencimento);
@@ -133,7 +134,7 @@
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     venc.setHours(0, 0, 0, 0);
-    return venc < hoje;
+    return venc <= hoje;
   }
 
   function mostrarVencidos() {
@@ -301,9 +302,18 @@
   });
 
   dialogExcluir.addEventListener('close', () => {
+    indiceParaExcluir = null;
+  });
+
+  // A exclusão acontece no próprio clique do "Sim, excluir", e não no evento
+  // "close" do dialog: o navegador dispara o "close" depois, em outra tarefa, e
+  // um clique rápido em Exportar logo em seguida ainda pegava o lançamento.
+  btnConfirmarExcluir.addEventListener('click', (e) => {
+    e.preventDefault();
     const indice = indiceParaExcluir;
     indiceParaExcluir = null;
-    if (dialogExcluir.returnValue !== 'confirmar' || indice === null || !ultimoRelatorio) return;
+    dialogExcluir.close('confirmar');
+    if (indice === null || !ultimoRelatorio) return;
     const [removido] = ultimoRelatorio.matched.splice(indice, 1);
     renderMatched(ultimoRelatorio.matched);
     renderResumo(ultimoRelatorio);
