@@ -16,6 +16,8 @@ Sistema local para conferência dos lançamentos do faturista (Entrada de Produt
 - Filtro por **dia de vencimento** ("Vencimento do dia" / "até o dia", padrão 01 a 31): mostra e exporta só os lançamentos cujo dia de vencimento está na faixa, ignorando mês/ano. Se o dia inicial for maior que o final (ex.: 25 a 05), vale a virada do mês (25 a 31 e 01 a 05). Muda na hora, sem consultar o banco de novo.
 - Qualquer lançamento pode ser tirado da exportação pelo **X** da linha (com confirmação). Só sai da lista em tela; nada é apagado do banco.
 - Entradas sem título correspondente e as transferências aparecem só na tela, em seções separadas (não entram no Excel/PDF).
+- Os arquivos exportados se chamam `protocolo-financeiro_dd-mm-aaaa.pdf` / `.xlsx` (data da geração).
+- **Histórico de documentos** (botão no topo, `historico.html`): todo PDF/Excel gerado é gravado em `dados/documentos/<id>.json` com uma cópia congelada do que saiu nele (loja, período, filtros e linhas já formatadas). A tela lista os documentos, mostra cada um como foi gerado e permite gerar o PDF/Excel de novo, idêntico ao original (mesma data e mesmos dados), mesmo que os lançamentos tenham mudado depois. Reimprimir não cria novo registro. Os arquivos de `dados/` não vão para o Git: faça backup dessa pasta no servidor.
 
 ## Como rodar (usuário do dia a dia)
 
@@ -84,10 +86,16 @@ server/
   config.js               -> credenciais e dados de conexão por loja
   db.js                   -> pool de conexão com o SQL Server (mssql)
   report.js               -> consultas e cruzamento dos dados
+  documentos.js           -> histórico dos documentos gerados (dados/documentos/*.json)
   iniciar-servidor.bat    -> roda "node server.js" numa janela própria (usado pelo .bat principal)
 servidor/                 -> publicação no servidor Windows (instalar.bat, desinstalar.bat, config.ps1)
 public/
-  index.html   -> tela do sistema
+  index.html     -> tela do sistema
+  historico.html -> histórico dos documentos gerados
   style.css
-  app.js       -> lógica do front-end, exportação Excel/PDF
+  app.js         -> lógica da tela principal
+  historico.js   -> lógica da tela de histórico
+  documento.js   -> montagem do PDF/Excel (usado pelas duas telas)
+  tema.js        -> tema claro/escuro
+dados/documentos/ -> histórico gravado (criado sozinho; fora do Git)
 ```

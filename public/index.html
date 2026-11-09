@@ -35,6 +35,11 @@
         </div>
       </div>
 
+      <div class="header-acoes">
+      <a href="historico.html" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+        Histórico de documentos
+      </a>
       <button id="btn-tema" class="theme-toggle" type="button" aria-label="Alternar entre tema claro e escuro" title="Alternar tema">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="4"/>
@@ -44,6 +49,7 @@
           <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/>
         </svg>
       </button>
+      </div>
     </div>
   </header>
 
@@ -98,6 +104,7 @@
             Exportar PDF
           </button>
         </div>
+        <p id="mensagem-export" class="mensagem mensagem-export"></p>
       </section>
 
       <section class="card">
@@ -210,6 +217,8 @@
   <script src="/vendor/xlsx/xlsx.full.min.js"></script>
   <script src="/vendor/jspdf/jspdf.umd.min.js"></script>
   <script src="/vendor/jspdf-autotable/jspdf.plugin.autotable.min.js"></script>
+  <script src="tema.js"></script>
+  <script src="documento.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

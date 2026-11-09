@@ -3,11 +3,13 @@ const path = require('path');
 const express = require('express');
 const { STORES } = require('./config');
 const { generateReport, buscarContaPorCodigo } = require('./report');
+const { salvarDocumento, listarDocumentos, obterDocumento } = require('./documentos');
 
 const app = express();
 const PORTA = Number(process.env.PORT || 3006);
 const PORTA_OCUPADA = 3; // código de saída usado por servidor/iniciar.ps1 para não ficar tentando de novo
 
+app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/vendor/xlsx', express.static(path.join(__dirname, '..', 'node_modules', 'xlsx', 'dist')));
 app.use('/vendor/jspdf', express.static(path.join(__dirname, '..', 'node_modules', 'jspdf', 'dist')));
@@ -72,6 +74,38 @@ app.get('/api/conta', async (req, res) => {
   } catch (err) {
     console.error('Erro ao buscar código do Contas a Pagar:', err);
     res.status(500).json({ erro: `Erro ao consultar o banco de dados: ${err.message}` });
+  }
+});
+
+// --- Histórico dos documentos gerados (PDF/Excel) ---
+
+app.post('/api/documentos', async (req, res) => {
+  try {
+    const registro = await salvarDocumento(req.body, req.ip);
+    res.status(201).json({ id: registro.id });
+  } catch (err) {
+    console.error('Erro ao registrar documento no histórico:', err);
+    res.status(400).json({ erro: `Não foi possível registrar o documento no histórico: ${err.message}` });
+  }
+});
+
+app.get('/api/documentos', async (req, res) => {
+  try {
+    res.json(await listarDocumentos());
+  } catch (err) {
+    console.error('Erro ao listar o histórico:', err);
+    res.status(500).json({ erro: `Erro ao ler o histórico: ${err.message}` });
+  }
+});
+
+app.get('/api/documentos/:id', async (req, res) => {
+  try {
+    const doc = await obterDocumento(req.params.id);
+    if (!doc) return res.status(404).json({ erro: 'Documento não encontrado no histórico.' });
+    res.json(doc);
+  } catch (err) {
+    console.error('Erro ao ler documento do histórico:', err);
+    res.status(500).json({ erro: `Erro ao ler o documento: ${err.message}` });
   }
 });
 

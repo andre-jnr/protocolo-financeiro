@@ -15,11 +15,11 @@
   const semTransferenciasEl = document.getElementById('sem-transferencias');
   const btnExcel = document.getElementById('btn-excel');
   const btnPdf = document.getElementById('btn-pdf');
+  const mensagemExportEl = document.getElementById('mensagem-export');
   const addCodigoForm = document.getElementById('add-codigo-form');
   const codigoInput = document.getElementById('codigo-contas-pagar');
   const btnAddCodigo = document.getElementById('btn-add-codigo');
   const mensagemAddCodigo = document.getElementById('mensagem-add-codigo');
-  const btnTema = document.getElementById('btn-tema');
   const chkVencidos = document.getElementById('chk-vencidos');
   const diaInicialInput = document.getElementById('dia-inicial');
   const diaFinalInput = document.getElementById('dia-final');
@@ -45,36 +45,6 @@
       <path d="M6 6l12 12M18 6L6 18"/>
     </svg>
   `;
-
-  // --- Tema claro/escuro, com transição animada (View Transitions API) ---
-
-  const CHAVE_TEMA = 'protocolo-financeiro-tema';
-
-  function temaAtual() {
-    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-  }
-
-  function aplicarTema(tema) {
-    document.documentElement.setAttribute('data-theme', tema);
-    try { localStorage.setItem(CHAVE_TEMA, tema); } catch (e) { /* ambiente sem localStorage */ }
-  }
-
-  if (btnTema) {
-    btnTema.addEventListener('click', (ev) => {
-      const proximo = temaAtual() === 'dark' ? 'light' : 'dark';
-      const rect = btnTema.getBoundingClientRect();
-      const x = ev.clientX || (rect.left + rect.width / 2);
-      const y = ev.clientY || (rect.top + rect.height / 2);
-      document.documentElement.style.setProperty('--theme-toggle-x', `${x}px`);
-      document.documentElement.style.setProperty('--theme-toggle-y', `${y}px`);
-
-      if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        document.startViewTransition(() => aplicarTema(proximo));
-      } else {
-        aplicarTema(proximo);
-      }
-    });
-  }
 
   function setMensagem(texto, tipo) {
     mensagemEl.textContent = texto || '';
@@ -511,123 +481,69 @@
   });
 
   // --- Exportação ---
+  // Monta um retrato do documento com tudo já formatado, gera o arquivo a
+  // partir dele (documento.js) e grava o mesmo retrato no histórico. Assim a
+  // tela de histórico mostra e reimprime exatamente o que saiu no documento.
 
-  btnExcel.addEventListener('click', () => {
-    if (!ultimoRelatorio) return;
-    const linhas = matchedVisiveis().map((item) => ({
-      'Código': item.codigoContasPagar,
-      'Nota Fiscal': item.notaFiscal,
-      'Data de Emissão': formatDate(item.dataEmissao),
-      'Data de Vencimento': formatDate(item.dataVencimento),
-      'Fornecedor': item.fornecedor,
-      'Parcela': item.parcela,
-      'Valor': Number(item.valor) || 0,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(linhas);
-    ws['!cols'] = [
-      { wch: 10 }, // Código
-      { wch: 16 }, // Nota Fiscal
-      { wch: 16 }, // Data Emissão
-      { wch: 18 }, // Data Vencimento
-      { wch: 36 }, // Fornecedor
-      { wch: 10 }, // Parcela
-      { wch: 14 }, // Valor
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Protocolo Financeiro');
-
-    const nomeArquivo = `protocolo_financeiro_${ultimoRelatorio.loja.replace(/\s+/g, '_')}.xlsx`;
-    XLSX.writeFile(wb, nomeArquivo);
-  });
-
-  btnPdf.addEventListener('click', () => {
-    if (!ultimoRelatorio) return;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 40;
-
-    doc.setFontSize(16);
-    doc.setTextColor(26, 77, 143);
-    doc.text('Protocolo para Financeiro', margin, 45);
-
-    doc.setFontSize(10);
-    doc.setTextColor(90, 102, 114);
+  function montarRetrato(tipo) {
+    const agora = new Date();
     const inicioFmt = new Date(ultimoRelatorio.periodo.inicio).toLocaleString('pt-BR');
     const fimFmt = new Date(ultimoRelatorio.periodo.fim).toLocaleString('pt-BR');
-    doc.text(`Loja: ${ultimoRelatorio.loja}`, margin, 64);
-    doc.text(`Período (Data de Lançamento): ${inicioFmt} até ${fimFmt}`, margin, 78);
-    let linhaY = 92;
-    if (filtroDiasAtivo()) {
-      doc.text(`Vencimentos: ${textoDiasVencimento()}`, margin, linhaY);
-      linhaY += 14;
+    return {
+      tipo,
+      geradoEm: agora.toISOString(),
+      geradoEmTexto: agora.toLocaleString('pt-BR'),
+      nomeArquivo: DocumentoProtocolo.nomeArquivo(agora, tipo === 'pdf' ? 'pdf' : 'xlsx'),
+      loja: ultimoRelatorio.loja,
+      periodoTexto: `${inicioFmt} até ${fimFmt}`,
+      vencimentosTexto: filtroDiasAtivo() ? textoDiasVencimento() : null,
+      incluiVencidos: mostrarVencidos(),
+      linhas: matchedVisiveis().map((item) => ({
+        codigo: String(item.codigoContasPagar ?? '-'),
+        notaFiscal: String(item.notaFiscal ?? '-'),
+        dataEmissao: formatDate(item.dataEmissao),
+        dataVencimento: formatDate(item.dataVencimento),
+        fornecedor: item.fornecedor ?? '-',
+        parcela: String(item.parcela ?? '-'),
+        valor: Number(item.valor) || 0,
+        valorTexto: formatCurrency(item.valor),
+      })),
+    };
+  }
+
+  function setMensagemExport(texto, tipo) {
+    mensagemExportEl.textContent = texto || '';
+    mensagemExportEl.className = `mensagem ${tipo || ''}`.trim();
+  }
+
+  async function registrarNoHistorico(retrato) {
+    try {
+      const res = await fetch('/api/documentos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(retrato),
+      });
+      const resposta = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(resposta.erro || 'Erro desconhecido.');
+      setMensagemExport(`${retrato.nomeArquivo} gerado e registrado no histórico.`, 'info');
+    } catch (err) {
+      setMensagemExport(`O arquivo foi gerado, mas não foi registrado no histórico: ${err.message}`, 'erro');
     }
-    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, linhaY);
+  }
 
-    const linhas = matchedVisiveis().map((item) => [
-      String(item.codigoContasPagar ?? '-'),
-      String(item.notaFiscal ?? '-'),
-      formatDate(item.dataEmissao),
-      formatDate(item.dataVencimento),
-      item.fornecedor ?? '-',
-      String(item.parcela ?? '-'),
-      formatCurrency(item.valor),
-    ]);
-
-    doc.autoTable({
-      startY: linhaY + 14,
-      head: [['Código', 'Nota Fiscal', 'Data Emissão', 'Data Vencimento', 'Fornecedor', 'Parcela', 'Valor']],
-      body: linhas,
-      styles: { fontSize: 9, cellPadding: 5 },
-      headStyles: { fillColor: [26, 77, 143], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [244, 246, 249] },
-      columnStyles: {
-        0: { cellWidth: 45 },
-        1: { cellWidth: 65 },
-        2: { cellWidth: 65 },
-        3: { cellWidth: 70 },
-        4: { cellWidth: 'auto' },
-        5: { cellWidth: 40, halign: 'center' },
-        6: { cellWidth: 70, halign: 'right' },
-      },
-      margin: { left: margin, right: margin },
-      didDrawPage: () => {
-        const pageCount = doc.internal.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(
-          `Página ${doc.internal.getCurrentPageInfo().pageNumber} de ${pageCount}`,
-          pageWidth - margin,
-          doc.internal.pageSize.getHeight() - 20,
-          { align: 'right' }
-        );
-      },
-    });
-
-    let finalY = doc.lastAutoTable.finalY + 20;
-    const pageHeight = doc.internal.pageSize.getHeight();
-    if (finalY > pageHeight - 70) {
-      doc.addPage();
-      finalY = 40;
+  function exportar(tipo) {
+    if (!ultimoRelatorio) return;
+    const retrato = montarRetrato(tipo);
+    if (tipo === 'pdf') {
+      DocumentoProtocolo.gerarPdf(retrato);
+    } else {
+      DocumentoProtocolo.gerarExcel(retrato);
     }
+    registrarNoHistorico(retrato);
+  }
 
-    const boxHeight = 34;
-    doc.setFillColor(255, 244, 229);
-    doc.setDrawColor(240, 180, 41);
-    doc.setLineWidth(1);
-    doc.roundedRect(margin, finalY, pageWidth - margin * 2, boxHeight, 4, 4, 'FD');
-    doc.setTextColor(122, 74, 0);
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('ATENÇÃO: confira os boletos no ato da entrega.', pageWidth / 2, finalY + boxHeight / 2 + 4, { align: 'center' });
-    doc.setFont(undefined, 'normal');
-
-    const nomeArquivo = `protocolo_financeiro_${ultimoRelatorio.loja.replace(/\s+/g, '_')}.pdf`;
-    doc.save(nomeArquivo);
-  });
+  btnExcel.addEventListener('click', () => exportar('excel'));
+  btnPdf.addEventListener('click', () => exportar('pdf'));
 
   definirPeriodoPadrao();
   carregarLojas();

@@ -9,6 +9,9 @@ node_modules/
 # Anotações com credenciais em texto puro (não deve ir para o repositório)
 dados.md
 
+# Histórico dos documentos gerados (dados de uso, não vão para o Git)
+dados/
+
 # Logs
 npm-debug.log*
 *.log
